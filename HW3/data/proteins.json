@@ -1,0 +1,14 @@
+[
+    {
+      "id": "1",
+      "name": "Protein A",
+      "sequence": "ACDEFGHIKLMNPQRSTVWY",
+      "secondary_structure": "HHHCCCEEEECCCCCCCCCC"
+    },
+    {
+      "id": "2",
+      "name": "Protein B",
+      "sequence": "ACDEFGHIKLMNPQRSTVWY",
+      "secondary_structure": "CCCCCCCCCCCCCCCCCCCC"
+    }
+  ]

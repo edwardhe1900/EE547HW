@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Protein Structure Visualization</title>
+  <style>
+    canvas {
+      border: 1px solid #000;
+    }
+  </style>
+</head>
+<body>
+  <h1>Protein Structure Visualization</h1>
+  <canvas id="proteinCanvas" width="800" height="100"></canvas>
+  <script>
+    const canvas = document.getElementById('proteinCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Fetch protein data from the API
+    fetch('/api/proteins/1')
+      .then(response => response.json())
+      .then(protein => {
+        const sequence = protein.sequence;
+        const secondaryStructure = protein.secondary_structure;
+
+        // Draw the protein structure
+        let x = 10;
+        for (let i = 0; i < sequence.length; i++) {
+          const symbol = sequence[i];
+          const structure = secondaryStructure[i];
+
+          // Set color based on secondary structure
+          if (structure === 'H') ctx.fillStyle = 'red'; // Helix
+          else if (structure === 'E') ctx.fillStyle = 'blue'; // Sheet
+          else ctx.fillStyle = 'gray'; // Coil
+
+          // Draw a rectangle for each residue
+          ctx.fillRect(x, 10, 20, 20);
+          ctx.fillStyle = 'black';
+          ctx.fillText(symbol, x + 5, 25);
+          x += 22;
+        }
+      });
+  </script>
+</body>
+</html>
