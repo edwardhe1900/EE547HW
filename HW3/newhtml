@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Protein Structure Visualization</title>
+  <style>
+    canvas {
+      border: 1px solid #000;
+    }
+  </style>
+</head>
+<body>
+  <h1>Protein Secondary Structure Visualization</h1>
+  <canvas id="proteinCanvas" width="800" height="200"></canvas>
+  <script>
+    const canvas = document.getElementById('proteinCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function visualizeStructure(sequence) {
+      const structureColors = { 'H': 'red', 'T': 'blue', 'S': 'green' };
+
+      let xPos = 20;
+      const scale = 20;
+
+      // Loop through the structure sequence and draw based on secondary structure
+      for (let i = 0; i < sequence.length; i++) {
+        ctx.fillStyle = structureColors[sequence[i]] || 'gray';
+        ctx.fillRect(xPos, 50, scale, scale);
+        xPos += scale + 5; // Move position for the next residue
+      }
+    }
+
+    // Sample secondary structure sequence (Helix, Turn, Sheet)
+    const secondaryStructure = 'HHHHTTTTSSSS';
+    visualizeStructure(secondaryStructure);
+  </script>
+</body>
+</html>
