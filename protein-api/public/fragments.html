@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Protein Fragments Analysis</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+    h1, h2, h3 {
+      color: #2c3e50;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input, select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #2980b9;
+    }
+    .fragment-container {
+      margin-top: 20px;
+      overflow-x: auto;
+    }
+    .sequence-display {
+      font-family: monospace;
+      display: flex;
+      margin-bottom: 5px;
+    }
+    .amino-acid {
+      width: 30px;
+      height: 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 2px;
+      font-weight: bold;
+    }
+    .structure-display {
+      font-family: monospace;
+      display: flex;
+      margin-bottom: 10px;
+    }
+    .structure-element {
+      width: 30px;
+      height: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 2px;
+    }
+    .alpha-helix {
+      background-color: #ff9999;
+    }
+    .beta-sheet {
+      background-color: #99ccff;
+    }
+    .coil {
+      background-color: #e0e0e0;
+    }
+    .motif {
+      border: 2px solid #e74c3c;
+    }
+    .confidence-bar {
+      height: 5px;
+      width: 30px;
+      margin: 2px;
+      background-color: #ddd;
+    }
+    .confidence-level {
+      height: 100%;
+      background-color: #27ae60;
+    }
+    .protein-selector {
+      display: flex;
+      margin-bottom: 20px;
+    }
+    .protein-selector select {
+      flex: 1;
+      margin-right: 10px;
+    }
+    .protein-selector button {
+      width: 150px;
+    }
+    .fragment-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .fragment-item {
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      padding: 10px;
+      cursor: pointer;
+      background-color: #f8f9fa;
+      width: calc(25% - 10px);
+      box-sizing: border-box;
+    }
+    .fragment-item:hover {
+      background-color: #e9ecef;
+    }
+    .fragment-item.selected {
+      background-color: #d1ecf1;
+      border-color: #bee5eb;
+    }
+    .loader {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #3498db;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .error {
+      color: #e74c3c;
+      padding: 10px;
+      border: 1px solid #e74c3c;
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+    .legend {
+      display: flex;
+      margin-top: 20px;
+      gap: 20px;
+    }
+    .legend-item {
+      display: flex;
+      align-items: center;
+    }
+    .legend-color {
+      width: 20px;
+      height: 20px;
+      margin-right: 5px;
+      border-radius: 3px;
+    }
+    .nav-links {
+      margin-bottom: 20px;
+    }
+    .nav-links a {
+      margin-right: 15px;
+      color: #3498db;
+      text-decoration: none;
+    }
+    .nav-links a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="nav-links">
+      <a href="/">Home</a>
+      <a href="/fragments.html">Fragment Analysis</a>
+      <a href="/api" target="_blank">API Documentation</a>
+    </div>
+    
+    <h1>Protein Fragment Analysis</h1>
+    
+    <div class="card">
+      <h2>Select Protein</h2>
+      <div class="protein-selector">
+        <select id="protein-select">
+          <option value="">-- Select a protein --</option>
+        </select>
+        <button id="load-protein">Load Fragments</button>
+      </div>
+      
+      <div id="protein-loader" class="loader" style="display: none;"></div>
+      <div id="protein-error" class="error" style="display: none;"></div>
+      
+      <div id="protein-info" style="display: none;">
+        <h3 id="protein-name"></h3>
+        <p id="protein-details"></p>
+      </div>
+    </div>
+    
+    <div id="fragments-card" class="card" style="display: none;">
+      <h2>Fragments</h2>
+      <p>Select a fragment to view details:</p>
+      
+      <div id="fragments-loader" class="loader" style="display: none;"></div>
+      <div id="fragments-error" class="error" style="display: none;"></div>
+      
+      <div id="fragment-list" class="fragment-list"></div>
+    </div>
+    
+    <div id="fragment-details-card" class="card" style="display: none;">
+      <h2>Fragment Details</h2>
+      <div id="fragment-loader" class="loader" style="display: none;"></div>
+      <div id="fragment-error" class="error" style="display: none;"></div>
+      
+      <div id="fragment-info"></div>
+      
+      <div class="fragment-container">
+        <h3>Sequence and Structure</h3>
+        
+        <div id="fragment-visualization"></div>
+        
+        <div class="legend">
+          <div class="legend-item">
+            <div class="legend-color alpha-helix"></div>
+            <span>Alpha Helix (H)</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color beta-sheet"></div>
+            <span>Beta Sheet (E)</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color coil"></div>
+            <span>Random Coil (C)</span>
+          </div>
+          <div class="legend-item">
+            <div class="legend-color" style="border: 2px solid #e74c3c; width: 16px; height: 16px;"></div>
+            <span>Motif</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // DOM elements
+    const proteinSelect = document.getElementById('protein-select');
+    const loadProteinBtn = document.getElementById('load-protein');
+    const proteinLoader = document.getElementById('protein-loader');
+    const proteinError = document.getElementById('protein-error');
+    const proteinInfo = document.getElementById('protein-info');
+    const proteinName = document.getElementById('protein-name');
+    const proteinDetails = document.getElementById('protein-details');
+    const fragmentsCard = document.getElementById('fragments-card');
+    const fragmentsLoader = document.getElementById('fragments-loader');
+    const fragmentsError = document.getElementById('fragments-error');
+    const fragmentList = document.getElementById('fragment-list');
+    const fragmentDetailsCard = document.getElementById('fragment-details-card');
+    const fragmentLoader = document.getElementById('fragment-loader');
+    const fragmentError = document.getElementById('fragment-error');
+    const fragmentInfo = document.getElementById('fragment-info');
+    const fragmentVisualization = document.getElementById('fragment-visualization');
+    
+    // Load proteins for the dropdown
+    async function loadProteins() {
+      try {
+        const headers = { 'X-User-ID': 'admin-user-001' };
+        const response = await fetch('/api/proteins?limit=100', { headers });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // Populate dropdown
+        data.proteins.forEach(protein => {
+          const option = document.createElement('option');
+          option.value = protein.proteinId;
+          option.textContent = `${protein.name} (${protein.sequenceLength} aa)`;
+          proteinSelect.appendChild(option);
+        });
+      } catch (error) {
+        console.error('Error loading proteins:', error);
+        proteinError.textContent = `Error loading proteins: ${error.message}`;
+        proteinError.style.display = 'block';
+      }
+    }
+    
+    // Load protein and its fragments
+    async function loadProteinAndFragments() {
+      const proteinId = proteinSelect.value;
+      
+      if (!proteinId) {
+        proteinError.textContent = 'Please select a protein';
+        proteinError.style.display = 'block';
+        return;
+      }
+      
+      // Reset UI
+      proteinLoader.style.display = 'block';
+      proteinError.style.display = 'none';
+      proteinInfo.style.display = 'none';
+      fragmentsCard.style.display = 'none';
+      fragmentDetailsCard.style.display = 'none';
+      
+      try {
+        const headers = { 'X-User-ID': 'admin-user-001' };
+        const [proteinResponse, fragmentsResponse] = await Promise.all([
+          fetch(`/api/proteins/${proteinId}`, { headers }),
+          fetch(`/api/proteins/${proteinId}/fragments`, { headers })
+        ]);
+        
+        if (!proteinResponse.ok || !fragmentsResponse.ok) {
+          throw new Error('Failed to fetch protein data');
+        }
+        
+        const protein = await proteinResponse.json();
+        const fragments = await fragmentsResponse.json();
+        
+        // Display protein info
+        proteinName.textContent = protein.name;
+        proteinDetails.innerHTML = `
+          <strong>ID:</strong> ${protein.proteinId}<br>
+          <strong>Length:</strong> ${protein.sequenceLength} amino acids<br>
+          <strong>Molecular Weight:</strong> ${protein.molecularWeight.toLocaleString()} Da<br>
+          <strong>Description:</strong> ${protein.description || 'No description provided'}
+        `;
+        
+        proteinInfo.style.display = 'block';
+        
+        // Display fragments
+        fragmentList.innerHTML = '';
+        
+        if (fragments.length === 0) {
+          fragmentsError.textContent = 'No fragments found for this protein';
+          fragmentsError.style.display = 'block';
+        } else {
+          fragments.forEach(fragment => {
+            const div = document.createElement('div');
+            div.className = 'fragment-item';
+            div.dataset.id = fragment.fragmentId;
+            div.innerHTML = `
+              <strong>Position:</strong> ${fragment.startPosition}-${fragment.endPosition}<br>
+              <strong>Sequence:</strong> ${fragment.sequence.length > 10 ? fragment.sequence.substring(0, 10) + '...' : fragment.sequence}
+              ${fragment.motifs.length ? `<br><strong>Motifs:</strong> ${fragment.motifs.join(', ')}` : ''}
+            `;
+            
+            div.addEventListener('click', () => {
+              // Highlight selected fragment
+              document.querySelectorAll('.fragment-item').forEach(el => el.classList.remove('selected'));
+              div.classList.add('selected');
+              
+              // Show fragment details
+              showFragmentDetails(fragment);
+            });
+            
+            fragmentList.appendChild(div);
+          });
+          
+          fragmentsCard.style.display = 'block';
+        }
+      } catch (error) {
+        console.error('Error loading protein data:', error);
+        proteinError.textContent = `Error: ${error.message}`;
+        proteinError.style.display = 'block';
+      } finally {
+        proteinLoader.style.display = 'none';
+      }
+    }
+    
+    // Show fragment details and visualization
+    function showFragmentDetails(fragment) {
+      fragmentDetailsCard.style.display = 'block';
+      fragmentLoader.style.display = 'none';
+      fragmentError.style.display = 'none';
+      
+      // Display fragment info
+      fragmentInfo.innerHTML = `
+        <p><strong>Fragment ID:</strong> ${fragment.fragmentId}</p>
+        <p><strong>Position:</strong> ${fragment.startPosition}-${fragment.endPosition}</p>
+        <p><strong>Length:</strong> ${fragment.sequence.length} amino acids</p>
+        ${fragment.motifs.length ? `<p><strong>Motifs:</strong> ${fragment.motifs.join(', ')}</p>` : ''}
+      `;
+      
+      // Visualize the fragment
+      visualizeFragment(fragment);
+    }
+    
+    // Create visualization for a fragment
+    function visualizeFragment(fragment) {
+      const sequence = fragment.sequence;
+      const structure = fragment.secondaryStructure;
+      const confidenceScores = fragment.confidenceScores;
+      
+      // Find motif positions (simple implementation)
+      const motifPositions = new Set();
+      if (fragment.motifs && fragment.motifs.length) {
+        fragment.motifs.forEach(motif => {
+          const matches = [...sequence.matchAll(new RegExp(motif, 'g'))];
+          matches.forEach(match => {
+            for (let i = match.index; i < match.index + motif.length; i++) {
+              motifPositions.add(i);
+            }
+          });
+        });
+      }
+      
+      // Build visualization
+      let html = '';
+      
+      // Amino acid sequence
+      html += '<div class="sequence-display">';
+      for (let i = 0; i < sequence.length; i++) {
+        const isMotif = motifPositions.has(i);
+        html += `<div class="amino-acid ${isMotif ? 'motif' : ''}">${sequence[i]}</div>`;
+      }
+      html += '</div>';
+      
+      // Secondary structure
+      html += '<div class="structure-display">';
+      for (let i = 0; i < structure.length; i++) {
+        const structureChar = structure[i];
+        let structureClass = '';
+        
+        switch (structureChar) {
+          case 'H': structureClass = 'alpha-helix'; break;
+          case 'E': structureClass = 'beta-sheet'; break;
+          case 'C': structureClass = 'coil'; break;
+        }
+        
+        const isMotif = motifPositions.has(i);
+        html += `<div class="structure-element ${structureClass} ${isMotif ? 'motif' : ''}">${structureChar}</div>`;
+      }
+      html += '</div>';
+      
+      // Confidence scores
+      html += '<div class="structure-display">';
+      for (let i = 0; i < confidenceScores.length; i++) {
+        const confidence = confidenceScores[i];
+        const width = Math.max(1, Math.round(confidence * 100));
+        
+        html += `
+          <div class="confidence-bar">
+            <div class="confidence-level" style="width: ${width}%"></div>
+          </div>
+        `;
+      }
+      html += '</div>';
+      
+      fragmentVisualization.innerHTML = html;
+    }
+    
+    // Event listeners
+    document.addEventListener('DOMContentLoaded', () => {
+      // Load proteins on page load
+      loadProteins();
+      
+      // Load fragments when a protein is selected
+      loadProteinBtn.addEventListener('click', loadProteinAndFragments);
+    });
+  </script>
+</body>
+</html>

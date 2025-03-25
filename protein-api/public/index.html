@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Protein Visualization API</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      margin: 0;
+      padding: 20px;
+      color: #333;
+    }
+    h1 {
+      color: #2c3e50;
+      margin-bottom: 20px;
+    }
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+      font-weight: bold;
+    }
+    input, textarea, select {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    button {
+      background-color: #3498db;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #2980b9;
+    }
+    pre {
+      background-color: #f5f5f5;
+      padding: 10px;
+      border-radius: 4px;
+      overflow: auto;
+      font-family: monospace;
+    }
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid #ddd;
+      margin-bottom: 20px;
+    }
+    .tab {
+      padding: 10px 15px;
+      cursor: pointer;
+      background-color: #f8f9fa;
+      border: 1px solid #ddd;
+      border-bottom: none;
+      margin-right: 5px;
+      border-radius: 5px 5px 0 0;
+    }
+    .tab.active {
+      background-color: white;
+      border-bottom: 1px solid white;
+      margin-bottom: -1px;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    .protein-list {
+      list-style: none;
+      padding: 0;
+    }
+    .protein-item {
+      border: 1px solid #eee;
+      padding: 10px;
+      margin-bottom: 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    .protein-item:hover {
+      background-color: #f8f9fa;
+    }
+    .protein-details {
+      margin-top: 20px;
+    }
+    .loader {
+      border: 4px solid #f3f3f3;
+      border-top: 4px solid #3498db;
+      border-radius: 50%;
+      width: 30px;
+      height: 30px;
+      animation: spin 1s linear infinite;
+      margin: 20px auto;
+    }
+    @keyframes spin {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+    .error {
+      color: #e74c3c;
+      padding: 10px;
+      border: 1px solid #e74c3c;
+      border-radius: 4px;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Protein Management API</h1>
+    
+    <div class="tabs">
+      <div class="tab active" data-tab="list">List Proteins</div>
+      <div class="tab" data-tab="search">Search</div>
+      <div class="tab" data-tab="create">Create Protein</div>
+    </div>
+    
+    <div class="tab-content active" id="list-tab">
+      <div class="card">
+        <h2>Protein List</h2>
+        <div id="proteins-loader" class="loader"></div>
+        <div id="proteins-error" class="error" style="display: none;"></div>
+        <ul id="protein-list" class="protein-list"></ul>
+        <div id="pagination" style="text-align: center; margin-top: 20px;">
+          <button id="prev-page" disabled>Previous</button>
+          <span id="page-info">Page 1</span>
+          <button id="next-page">Next</button>
+        </div>
+      </div>
+      
+      <div class="card protein-details" id="protein-details" style="display: none;">
+        <h2>Protein Details</h2>
+        <div id="protein-detail-loader" class="loader" style="display: none;"></div>
+        <div id="protein-detail-error" class="error" style="display: none;"></div>
+        <div id="protein-detail-content"></div>
+      </div>
+    </div>
+    
+    <div class="tab-content" id="search-tab">
+      <div class="card">
+        <h2>Search Proteins</h2>
+        <form id="search-form">
+          <div class="form-group">
+            <label for="search-name">Name (contains)</label>
+            <input type="text" id="search-name" placeholder="Enter protein name">
+          </div>
+          
+          <div class="form-group">
+            <label for="search-motif">Motif</label>
+            <input type="text" id="search-motif" placeholder="Enter motif pattern">
+          </div>
+          
+          <div class="form-group">
+            <label for="search-mw-op">Molecular Weight</label>
+            <div style="display: flex; gap: 10px;">
+              <select id="search-mw-op">
+                <option value="gt">Greater than</option>
+                <option value="lt">Less than</option>
+                <option value="eq">Equal to</option>
+              </select>
+              <input type="number" id="search-mw-value" placeholder="Value">
+            </div>
+          </div>
+          
+          <div class="form-group">
+            <label for="search-sort">Sort By</label>
+            <select id="search-sort">
+              <option value="name:asc">Name (A-Z)</option>
+              <option value="name:desc">Name (Z-A)</option>
+              <option value="molecularWeight:asc">Molecular Weight (Low to High)</option>
+              <option value="molecularWeight:desc">Molecular Weight (High to Low)</option>
+              <option value="sequenceLength:asc">Sequence Length (Short to Long)</option>
+              <option value="sequenceLength:desc">Sequence Length (Long to Short)</option>
+              <option value="createdAt:desc">Newest First</option>
+              <option value="createdAt:asc">Oldest First</option>
+            </select>
+          </div>
+          
+          <button type="submit">Search</button>
+        </form>
+        
+        <div id="search-loader" class="loader" style="display: none;"></div>
+        <div id="search-error" class="error" style="display: none;"></div>
+        <div id="search-results" style="margin-top: 20px;">
+          <h3>Results</h3>
+          <ul id="search-results-list" class="protein-list"></ul>
+        </div>
+      </div>
+    </div>
+    
+    <div class="tab-content" id="create-tab">
+      <div class="card">
+        <h2>Create New Protein</h2>
+        <form id="create-form">
+          <div class="form-group">
+            <label for="protein-name">Name</label>
+            <input type="text" id="protein-name" placeholder="Enter protein name">
+          </div>
+          
+          <div class="form-group">
+            <label for="protein-description">Description</label>
+            <textarea id="protein-description" rows="3" placeholder="Enter protein description"></textarea>
+          </div>
+          
+          <div class="form-group">
+            <label for="protein-sequence">Sequence (Required)</label>
+            <textarea id="protein-sequence" rows="10" placeholder="Enter amino acid sequence" required></textarea>
+          </div>
+          
+          <button type="submit">Create Protein</button>
+        </form>
+        
+        <div id="create-loader" class="loader" style="display: none;"></div>
+        <div id="create-error" class="error" style="display: none;"></div>
+        <div id="create-success" style="display: none; color: #27ae60; margin-top: 15px;"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Global variables
+    let currentPage = 1;
+    const limit = 10;
+    let totalProteins = 0;
+    
+    // DOM elements
+    const tabs = document.querySelectorAll('.tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    // Switch tabs
+    tabs.forEach(tab => {
+      tab.addEventListener('click', () => {
+        tabs.forEach(t => t.classList.remove('active'));
+        tabContents.forEach(tc => tc.classList.remove('active'));
+        
+        tab.classList.add('active');
+        const tabId = `${tab.dataset.tab}-tab`;
+        document.getElementById(tabId).classList.add('active');
+      });
+    });
+    
+    // Fetch proteins list
+    async function fetchProteins(page = 1) {
+      const offset = (page - 1) * limit;
+      const proteinsLoader = document.getElementById('proteins-loader');
+      const proteinsError = document.getElementById('proteins-error');
+      const proteinsList = document.getElementById('protein-list');
+      
+      proteinsLoader.style.display = 'block';
+      proteinsError.style.display = 'none';
+      proteinsList.innerHTML = '';
+      
+      try {
+        const headers = { 'X-User-ID': 'admin-user-001' };
+        const response = await fetch(`/api/proteins?limit=${limit}&offset=${offset}`, { headers });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error ${response.status}`);
+        }
+        
+        const data = await response.json();
+        totalProteins = data.total;
+        
+        // Update pagination
+        document.getElementById('prev-page').disabled = page <= 1;
+        document.getElementById('next-page').disabled = (page * limit) >= totalProteins;
+        document.getElementById('page-info').textContent = `Page ${page} of ${Math.ceil(totalProteins / limit)}`;
+        
+        // Display proteins
+        if (data.proteins.length === 0) {
+          proteinsList.innerHTML = '<li>No proteins found</li>';
+        } else {
+          data.proteins.forEach(protein => {
+            const li = document.createElement('li');
+            li.className = 'protein-item';
+            li.dataset.id = protein.proteinId;
+            li.innerHTML = `
+              <strong>${protein.name}</strong>
+              <p>${protein.description || 'No description'}</p>
+              <p><small>Length: ${protein.sequenceLength} | MW: ${protein.molecularWeight.toLocaleString()} Da</small></p>
+            `;
+            li.addEventListener('click', () => showProteinDetails(protein.proteinId));
+            proteinsList.appendChild(li);
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching proteins:', error);
+        proteinsError.textContent = `Error loading proteins: ${error.message}`;
+        proteinsError.style.display = 'block';
+      } finally {
+        proteinsLoader.style.display = 'none';
+      }
+    }
+    
+    // Show protein details
+    async function showProteinDetails(proteinId) {
+      const detailsDiv = document.getElementById('protein-details');
+      const detailLoader = document.getElementById('protein-detail-loader');
+      const detailError = document.getElementById('protein-detail-error');
+      const detailContent = document.getElementById('protein-detail-content');
+      
+      detailsDiv.style.display = 'block';
+      detailLoader.style.display = 'block';
+      detailError.style.display = 'none';
+      detailContent.innerHTML = '';
+      
+      try {
+        const headers = { 'X-User-ID': 'admin-user-001' };
+        const [proteinResponse, fragmentsResponse, structureResponse] = await Promise.all([
+          fetch(`/api/proteins/${proteinId}`, { headers }),
+          fetch(`/api/proteins/${proteinId}/fragments`, { headers }),
+          fetch(`/api/proteins/${proteinId}/structure`, { headers })
+        ]);
+        
+        if (!proteinResponse.ok || !fragmentsResponse.ok || !structureResponse.ok) {
+          throw new Error('Failed to fetch protein data');
+        }
+        
+        const protein = await proteinResponse.json();
+        const fragments = await fragmentsResponse.json();
+        const structure = await structureResponse.json();
+        
+        // Display protein details
+        detailContent.innerHTML = `
+          <h3>${protein.name}</h3>
+          <p><strong>ID:</strong> ${protein.proteinId}</p>
+          <p><strong>Description:</strong> ${protein.description || 'No description'}</p>
+          <p><strong>Molecular Weight:</strong> ${protein.molecularWeight.toLocaleString()} Da</p>
+          <p><strong>Sequence Length:</strong> ${protein.sequenceLength}</p>
+          <p><strong>Created:</strong> ${new Date(protein.createdAt).toLocaleString()}</p>
+          
+          <h4>Secondary Structure Statistics</h4>
+          <p><strong>Alpha Helix:</strong> ${Math.round(structure.statistics.helix * 100)}%</p>
+          <p><strong>Beta Sheet:</strong> ${Math.round(structure.statistics.sheet * 100)}%</p>
+          <p><strong>Random Coil:</strong> ${Math.round(structure.statistics.coil * 100)}%</p>
+          
+          <h4>Fragments (${fragments.length})</h4>
+          <ul style="list-style: none; padding: 0;">
+            ${fragments.map(f => `
+              <li style="margin-bottom: 10px; padding: 10px; border: 1px solid #eee; border-radius: 4px;">
+                <p><strong>Sequence:</strong> ${f.sequence}</p>
+                <p><strong>Position:</strong> ${f.startPosition}-${f.endPosition}</p>
+                <p><strong>Secondary Structure:</strong> ${f.secondaryStructure}</p>
+                ${f.motifs.length ? `<p><strong>Motifs:</strong> ${f.motifs.join(', ')}</p>` : ''}
+              </li>
+            `).join('')}
+          </ul>
+        `;
+      } catch (error) {
+        console.error('Error fetching protein details:', error);
+        detailError.textContent = `Error loading protein details: ${error.message}`;
+        detailError.style.display = 'block';
+      } finally {
+        detailLoader.style.display = 'none';
+      }
+    }
+    
+    // Search proteins
+    async function searchProteins(event) {
+      event.preventDefault();
+      
+      const searchLoader = document.getElementById('search-loader');
+      const searchError = document.getElementById('search-error');
+      const searchResults = document.getElementById('search-results-list');
+      
+      searchLoader.style.display = 'block';
+      searchError.style.display = 'none';
+      searchResults.innerHTML = '';
+      
+      // Build search query
+      const name = document.getElementById('search-name').value;
+      const motif = document.getElementById('search-motif').value;
+      const mwOp = document.getElementById('search-mw-op').value;
+      const mwValue = document.getElementById('search-mw-value').value;
+      const sort = document.getElementById('search-sort').value;
+      
+      let queryParams = [];
+      if (name) queryParams.push(`name=${encodeURIComponent(name)}`);
+      if (motif) queryParams.push(`motif=${encodeURIComponent(motif)}`);
+      if (mwValue) queryParams.push(`molecularWeight[${mwOp}]=${mwValue}`);
+      if (sort) queryParams.push(`sort=${sort}`);
+      
+      const queryString = queryParams.join('&');
+      
+      try {
+        const headers = { 'X-User-ID': 'admin-user-001' };
+        const response = await fetch(`/api/proteins/search?${queryString}`, { headers });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP error ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // Display results
+        if (data.length === 0) {
+          searchResults.innerHTML = '<li>No proteins found matching your criteria</li>';
+        } else {
+          data.forEach(protein => {
+            const li = document.createElement('li');
+            li.className = 'protein-item';
+            li.dataset.id = protein.proteinId;
+            li.innerHTML = `
+              <strong>${protein.name}</strong>
+              <p>${protein.description || 'No description'}</p>
+              <p><small>Length: ${protein.sequenceLength} | MW: ${protein.molecularWeight.toLocaleString()} Da</small></p>
+            `;
+            li.addEventListener('click', () => {
+              // Switch to list tab and show details
+              tabs.forEach(t => t.classList.remove('active'));
+              tabContents.forEach(tc => tc.classList.remove('active'));
+              
+              document.querySelector('.tab[data-tab="list"]').classList.add('active');
+              document.getElementById('list-tab').classList.add('active');
+              
+              showProteinDetails(protein.proteinId);
+            });
+            searchResults.appendChild(li);
+          });
+        }
+      } catch (error) {
+        console.error('Error searching proteins:', error);
+        searchError.textContent = `Error searching: ${error.message}`;
+        searchError.style.display = 'block';
+      } finally {
+        searchLoader.style.display = 'none';
+      }
+    }
+    
+    // Create protein
+    async function createProtein(event) {
+      event.preventDefault();
+      
+      const createLoader = document.getElementById('create-loader');
+      const createError = document.getElementById('create-error');
+      const createSuccess = document.getElementById('create-success');
+      
+      createLoader.style.display = 'block';
+      createError.style.display = 'none';
+      createSuccess.style.display = 'none';
+      
+      const name = document.getElementById('protein-name').value;
+      const description = document.getElementById('protein-description').value;
+      const sequence = document.getElementById('protein-sequence').value.trim();
+      
+      if (!sequence) {
+        createError.textContent = 'Protein sequence is required';
+        createError.style.display = 'block';
+        createLoader.style.display = 'none';
+        return;
+      }
+      
+      try {
+        const headers = { 
+          'X-User-ID': 'admin-user-001',
+          'Content-Type': 'application/json'
+        };
+        
+        const response = await fetch('/api/proteins', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({
+            name,
+            description,
+            sequence
+          })
+        });
+        
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || `HTTP error ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        // Show success message
+        createSuccess.innerHTML = `
+          <p>Protein created successfully!</p>
+          <p><strong>ID:</strong> ${data.proteinId}</p>
+          <p><strong>Name:</strong> ${data.name}</p>
+        `;
+        createSuccess.style.display = 'block';
+        
+        // Clear form
+        document.getElementById('create-form').reset();
+        
+        // Refresh proteins list
+        fetchProteins(1);
+      } catch (error) {
+        console.error('Error creating protein:', error);
+        createError.textContent = `Error creating protein: ${error.message}`;
+        createError.style.display = 'block';
+      } finally {
+        createLoader.style.display = 'none';
+      }
+    }
+    
+    // Event listeners
+    document.addEventListener('DOMContentLoaded', () => {
+      // Load proteins on page load
+      fetchProteins();
+      
+      // Pagination
+      document.getElementById('prev-page').addEventListener('click', () => {
+        if (currentPage > 1) {
+          currentPage--;
+          fetchProteins(currentPage);
+        }
+      });
+      
+      document.getElementById('next-page').addEventListener('click', () => {
+        if ((currentPage * limit) < totalProteins) {
+          currentPage++;
+          fetchProteins(currentPage);
+        }
+      });
+      
+      // Search form
+      document.getElementById('search-form').addEventListener('submit', searchProteins);
+      
+      // Create form
+      document.getElementById('create-form').addEventListener('submit', createProtein);
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+{
+    "name": "protein-api",
+    "version": "1.0.0",
+    "description": "Node.js RESTful API for protein management and visualization with PostgreSQL",
+    "main": "index.js",
+    "type": "commonjs",
+    "scripts": {
+        "start": "node index.js",
+        "dev": "nodemon index.js",
+        "setup-db": "node scripts/setupDatabase.js",
+        "migrate-db": "node scripts/migrate_db.js",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "keywords": [
+        "protein",
+        "bioinformatics",
+        "API",
+        "visualization",
+        "GOR",
+        "structure",
+        "motif"
+    ],
+    "author": "",
+    "license": "ISC",
+    "dependencies": {
+        "dotenv": "^16.4.7",
+        "express": "^4.21.2",
+        "pg": "^8.14.1",
+        "postgres": "^3.4.5",
+        "uuid": "^11.1.0"
+    },
+    "devDependencies": {
+        "nodemon": "^3.1.9"
+    }
+}
